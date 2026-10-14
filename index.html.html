@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>¿Laminar o turbulento? Minijuego de Reynolds</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=Figtree:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#EEF4FB; --surface:#FFFFFF; --ink:#0A2540; --muted:#46617C; --line:#C9D9EA;
+  --accent:#1456D9; --accent-ink:#FFFFFF; --soft:#E1ECFB;
+  --tube:#071B33; --dye:#6FE3FF;
+  --ok:#0B7F55; --okbg:#DDF5EA; --bad:#B63A2B; --badbg:#FBE5E1;
+  --display:"Bricolage Grotesque","Trebuchet MS",system-ui,sans-serif;
+  --body:"Figtree",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px);
+  padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#06182C; --surface:#0D2744; --ink:#E6F0FB; --muted:#9DB4CC; --line:#1E3F63;
+    --accent:#5B9BFF; --accent-ink:#06182C; --soft:#12345A;
+    --tube:#030F1E; --dye:#6FE3FF;
+    --ok:#4CD3A0; --okbg:#0C3A2C; --bad:#FF8A78; --badbg:#44201B;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#06182C; --surface:#0D2744; --ink:#E6F0FB; --muted:#9DB4CC; --line:#1E3F63;
+  --accent:#5B9BFF; --accent-ink:#06182C; --soft:#12345A;
+  --tube:#030F1E; --dye:#6FE3FF;
+  --ok:#4CD3A0; --okbg:#0C3A2C; --bad:#FF8A78; --badbg:#44201B;
+}
+*,*::before,*::after{box-sizing:inherit}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--body);font-size:17px;line-height:1.5;-webkit-text-size-adjust:100%}
+main{max-width:540px;margin:0 auto;padding:20px 16px 40px}
+h1,h2{font-family:var(--display);line-height:1.1;margin:0}
+h1{font-size:clamp(2rem,9vw,2.75rem);font-weight:800;letter-spacing:-0.02em}
+h2{font-size:1.45rem;font-weight:700;letter-spacing:-0.01em;margin-bottom:6px}
+.lead{color:var(--muted);margin:8px 0 18px}
+
+/* El hilo de tinta: lo memorable de la página */
+.tubo{position:relative;background:var(--tube);border-radius:18px;overflow:hidden;border:1px solid var(--line)}
+.tubo canvas{display:block;width:100%;height:132px}
+.lectura{position:absolute;left:12px;bottom:8px;right:12px;display:flex;justify-content:space-between;gap:8px;font-size:.82rem;color:#CFE6FF;text-shadow:0 1px 2px rgba(0,0,0,.6)}
+.lectura strong{color:#fff}
+
+.card{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:18px;margin-top:14px}
+.meta{display:flex;justify-content:space-between;font-size:.9rem;color:var(--muted);margin-bottom:10px;font-weight:600}
+p{margin:0 0 12px}
+
+.slider-wrap{margin:12px 0 4px}
+.slider-wrap label{display:block;font-weight:600;margin-bottom:6px}
+input[type=range]{width:100%;accent-color:var(--accent);height:32px}
+.estado{font-weight:700}
+.regla-caja{background:var(--soft);border-radius:10px;padding:12px 14px;font-size:.95rem;margin-top:12px}
+.regla-caja p{margin:0 0 6px}.regla-caja p:last-child{margin:0}
+
+dl.datos{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:14px 0}
+dl.datos div{background:var(--soft);border-radius:10px;padding:8px 10px}
+dt{font-size:.78rem;color:var(--muted);font-weight:600}
+dd{margin:0;font-weight:700;font-size:1rem}
+.regla{font-size:.92rem;color:var(--muted);margin:0 0 10px}
+details{margin:0 0 14px;font-size:.95rem}
+summary{cursor:pointer;font-weight:600;color:var(--accent);padding:4px 0}
+details .formula{background:var(--soft);border-radius:10px;padding:10px 12px;margin-top:6px}
+
+.choices{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+button{font:inherit;cursor:pointer;border:0}
+.choice{background:var(--accent);color:var(--accent-ink);border-radius:14px;padding:14px 10px;min-height:76px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px}
+.choice b{font-family:var(--display);font-size:1.25rem}
+.choice span{font-size:.82rem;opacity:.9}
+.choice:disabled{cursor:default;opacity:.55}
+.choice.correct{background:var(--ok);color:#fff;opacity:1}
+.choice.wrong{background:var(--bad);color:#fff;opacity:1}
+.btn{background:var(--accent);color:var(--accent-ink);border-radius:12px;padding:13px 20px;font-weight:700;min-height:48px;width:100%}
+.btn.sec{background:transparent;color:var(--accent);border:2px solid var(--accent)}
+button:focus-visible,input:focus-visible,summary:focus-visible{outline:3px solid var(--accent);outline-offset:3px}
+
+.fb{margin-top:14px}
+.veredicto{border-radius:12px;padding:12px 14px;font-weight:700;margin-bottom:10px}
+.veredicto.ok{background:var(--okbg);color:var(--ok)}
+.veredicto.no{background:var(--badbg);color:var(--bad)}
+.cuenta{background:var(--soft);border-radius:12px;padding:12px 14px;font-size:.95rem;margin-bottom:12px}
+.cuenta p{margin:0 0 6px}.cuenta p:last-child{margin:0}
+.eq{font-variant-numeric:tabular-nums;word-break:break-word}
+
+.final-num{font-family:var(--display);font-weight:800;font-size:4rem;line-height:1;color:var(--accent)}
+.stack{display:grid;gap:10px;margin-top:16px}
+@media (prefers-reduced-motion: reduce){*{scroll-behavior:auto!important;transition:none!important}}
+</style>
+</head>
+<body>
+<main>
+  <h1>¿Laminar o turbulento?</h1>
+  <p class="lead">Calculá el número de Reynolds, decidí cómo se mueve el fluido y mirá qué hace el hilo de tinta.</p>
+
+  <div class="tubo">
+    <canvas id="cv" aria-label="Hilo de tinta dentro de un tubo: recto si el flujo es laminar, con remolinos si es turbulento"></canvas>
+    <div class="lectura"><span id="lec-izq"></span><span id="lec-der"></span></div>
+  </div>
+
+  <div id="pantalla" aria-live="polite"></div>
+</main>
+
+<script>
+(function(){
+  "use strict";
+
+  /* ---------- Utilidades ---------- */
+  var fmt = function(n, max){ return n.toLocaleString('de-DE',{maximumFractionDigits: max||0}); };
+  var clamp = function(x,a,b){ return Math.max(a, Math.min(b, x)); };
+  var reduced = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  var LIM_TUBO_LAM = 2300, LIM_TUBO_TURB = 10000, LIM_PLACA = 500000;
+
+  /* Viscosidades cinemáticas (mantisa x 10^-6 m2/s) de las tablas del apunte */
+  var PREGUNTAS = [
+    {tipo:'tubo', titulo:'Agua lentita en un caño', texto:'Un hilito de agua recorre un caño fino de laboratorio.',
+     fluido:'Agua a 20 °C', nu:1.007, V:0.05, L:0.02, Lnom:'Diámetro D'},
+    {tipo:'placa', titulo:'Ventilador sobre una placa', texto:'Un ventilador chico sopla aire sobre una placa de 30 cm.',
+     fluido:'Aire a 20 °C', nu:15.10, V:1, L:0.3, Lnom:'Largo L'},
+    {tipo:'tubo', titulo:'Manguera abierta', texto:'Abrís la canilla a fondo y el agua corre por la manguera.',
+     fluido:'Agua a 20 °C', nu:1.007, V:2, L:0.015, Lnom:'Diámetro D'},
+    {tipo:'placa', titulo:'Viento en un techo', texto:'Una brisa de 3 m/s pasa por un techo de 4 m de largo.',
+     fluido:'Aire a 20 °C', nu:15.10, V:3, L:4, Lnom:'Largo L'},
+    {tipo:'tubo', titulo:'Agua fría y finita', texto:'Agua a 5 °C pasa despacito por un tubito de 1 cm.',
+     fluido:'Agua a 5 °C', nu:1.520, V:0.1, L:0.01, Lnom:'Diámetro D'},
+    {tipo:'placa', titulo:'Placa tibia, aire a 40 °C', texto:'Aire a 40 °C avanza a 2 m/s sobre una placa de 10 cm.',
+     fluido:'Aire a 40 °C', nu:16.98, V:2, L:0.1, Lnom:'Largo L'},
+    {tipo:'tubo', titulo:'Cañería de agua caliente', texto:'Agua a 65 °C circula por una cañería de 5 cm.',
+     fluido:'Agua a 65 °C', nu:0.442, V:1.5, L:0.05, Lnom:'Diámetro D'},
+    {tipo:'placa', titulo:'Pared de caseta en Comodoro', texto:'Un viento de 8 m/s pega a lo largo de una pared de 6 m.',
+     fluido:'Aire a 10 °C', nu:14.18, V:8, L:6, Lnom:'Largo L'}
+  ];
+  PREGUNTAS.forEach(function(q){
+    q.nuReal = q.nu * 1e-6;
+    q.num = q.V * q.L;
+    q.Re = q.num / q.nuReal;
+    q.turbulento = q.tipo === 'tubo' ? q.Re > LIM_TUBO_TURB : q.Re >= LIM_PLACA;
+  });
+
+  /* ---------- Hilo de tinta (canvas) ---------- */
+  var cv = document.getElementById('cv'), ctx = cv.getContext('2d');
+  var tubo = {t:0, target:0, W:0, H:132, tm:0};
+
+  function tDesdeRe(Re, tipo){
+    var lo = tipo === 'tubo' ? 2000 : 200000;
+    var hi = tipo === 'tubo' ? 20000 : 2000000;
+    return clamp((Math.log(Re/lo)/Math.LN10) / (Math.log(hi/lo)/Math.LN10), 0, 1);
+  }
+  function sstep(x){ x = clamp(x,0,1); return x*x*(3-2*x); }
+
+  function ajustar(){
+    var dpr = window.devicePixelRatio || 1;
+    tubo.W = cv.clientWidth; tubo.H = 132;
+    cv.width = Math.round(tubo.W*dpr); cv.height = Math.round(tubo.H*dpr);
+    ctx.setTransform(dpr,0,0,dpr,0,0);
+  }
+  function dibujar(){
+    var W = tubo.W, H = tubo.H, t = tubo.t, tm = reduced ? 0 : tubo.tm, cy = H/2 - 10;
+    ctx.clearRect(0,0,W,H);
+    /* paredes del tubo */
+    ctx.strokeStyle = 'rgba(160,200,255,.25)'; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.moveTo(0,14); ctx.lineTo(W,14); ctx.moveTo(0,H-34); ctx.lineTo(W,H-34); ctx.stroke();
+    var x0 = W*(0.8 - 0.7*t), amp = t*(H*0.28);
+    var hebras = [[-1,0.35,2],[1,0.35,2],[0,1,3.2]];
+    hebras.forEach(function(h){
+      ctx.strokeStyle = 'rgba(111,227,255,'+h[1]+')'; ctx.lineWidth = h[2]; ctx.lineCap='round'; ctx.lineJoin='round';
+      ctx.beginPath();
+      for(var x=0; x<=W; x+=3){
+        var a = amp * sstep((x-x0)/(W*0.22));
+        var k = h[0];
+        var w = Math.sin(x*0.045 - tm*2.2 + k) + 0.6*Math.sin(x*0.11 + tm*3.1 + k*1.7) + 0.35*Math.sin(x*0.27 - tm*5.3 + k*0.9);
+        var y = cy + k*9*sstep((x-x0)/(W*0.3))*t + a*w*0.6;
+        if(x===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
+      }
+      ctx.stroke();
+    });
+    ctx.fillStyle = '#6FE3FF'; ctx.beginPath(); ctx.arc(5,cy,5,0,Math.PI*2); ctx.fill();
+  }
+  var ultimo = 0;
+  function bucle(ts){
+    var dt = Math.min(0.05,(ts-ultimo)/1000 || 0.016); ultimo = ts;
+    tubo.tm += dt;
+    tubo.t += (tubo.target - tubo.t) * (reduced ? 1 : 0.06);
+    dibujar();
+    requestAnimationFrame(bucle);
+  }
+  window.addEventListener('resize', ajustar);
+  ajustar();
+  requestAnimationFrame(bucle);
+
+  var lecIzq = document.getElementById('lec-izq'), lecDer = document.getElementById('lec-der');
+  function lectura(a,b){ lecIzq.innerHTML = a || ''; lecDer.innerHTML = b || ''; }
+
+  /* ---------- Pantallas ---------- */
+  var pant = document.getElementById('pantalla');
+  var estado = {i:0, puntos:0};
+
+  function pantallaInicio(){
+    var xIni = 18;
+    pant.innerHTML =
+      '<div class="card">' +
+        '<h2>Primero, jugá con la velocidad</h2>' +
+        '<p>Agua a 20 °C en un tubo de 2 cm. Mové el control y mirá cuándo el hilo se desarma.</p>' +
+        '<div class="slider-wrap">' +
+          '<label for="vel">Velocidad del agua</label>' +
+          '<input id="vel" type="range" min="0" max="100" value="'+xIni+'">' +
+        '</div>' +
+        '<p class="estado" id="est"></p>' +
+        '<div class="regla-caja">' +
+          '<p><b>Re = V × L / ν</b> (velocidad × longitud característica / viscosidad cinemática)</p>' +
+          '<p>En caños: laminar si Re &lt; 2.300, turbulento si Re &gt; 10.000.</p>' +
+          '<p>En placas: laminar si Re &lt; 500.000, turbulento si es mayor.</p>' +
+        '</div>' +
+        '<div class="stack"><button class="btn" id="empezar">Empezar las 8 situaciones</button></div>' +
+      '</div>';
+    var vel = document.getElementById('vel'), est = document.getElementById('est');
+    function actualizar(){
+      var V = 0.02 * Math.pow(10, (vel.value/100)*2.3);
+      var Re = V*0.02/1.007e-6;
+      var nombre = Re < LIM_TUBO_LAM ? 'Laminar' : (Re <= LIM_TUBO_TURB ? 'Zona de transición' : 'Turbulento');
+      tubo.target = tDesdeRe(Re,'tubo');
+      est.textContent = 'V = ' + fmt(V,2) + ' m/s  →  Re ≈ ' + fmt(Math.round(Re)) + '  →  ' + nombre;
+      lectura('<span>Re ≈ <strong>'+fmt(Math.round(Re))+'</strong></span>', '<strong>'+nombre+'</strong>');
+    }
+    vel.addEventListener('input', actualizar);
+    actualizar();
+    document.getElementById('empezar').addEventListener('click', function(){
+      estado.i = 0; estado.puntos = 0; pantallaPregunta();
+    });
+  }
+
+  function datosHTML(q){
+    return '<dl class="datos">' +
+      '<div><dt>Fluido</dt><dd>'+q.fluido+'</dd></div>' +
+      '<div><dt>Velocidad V</dt><dd>'+fmt(q.V,3)+' m/s</dd></div>' +
+      '<div><dt>'+q.Lnom+'</dt><dd>'+fmt(q.L,3)+' m</dd></div>' +
+      '<div><dt>Viscosidad ν (tabla)</dt><dd>'+fmt(q.nu,3)+' × 10<sup>−6</sup> m²/s</dd></div>' +
+    '</dl>';
+  }
+
+  function pantallaPregunta(){
+    var q = PREGUNTAS[estado.i];
+    tubo.target = 0;
+    lectura('<span>Respondé para ver el hilo de tinta</span>','');
+    var regla = q.tipo === 'tubo'
+      ? 'Regla para caños: laminar si Re &lt; 2.300, turbulento si Re &gt; 10.000.'
+      : 'Regla para placas: laminar si Re &lt; 500.000, turbulento si es mayor.';
+    pant.innerHTML =
+      '<div class="card">' +
+        '<div class="meta"><span>Situación '+(estado.i+1)+' de '+PREGUNTAS.length+'</span><span>Puntos: '+estado.puntos+'</span></div>' +
+        '<h2>'+q.titulo+'</h2>' +
+        '<p>'+q.texto+'</p>' +
+        datosHTML(q) +
+        '<p class="regla">'+regla+'</p>' +
+        '<details><summary>Ver la fórmula</summary><div class="formula"><b>Re = V × L / ν</b><br>V en m/s, L en m y ν en m²/s. El resultado no tiene unidades.</div></details>' +
+        '<div class="choices">' +
+          '<button class="choice" data-r="lam"><b>Laminar</b><span>hilo derechito</span></button>' +
+          '<button class="choice" data-r="tur"><b>Turbulento</b><span>remolinos</span></button>' +
+        '</div>' +
+        '<div class="fb" id="fb"></div>' +
+      '</div>';
+    var botones = pant.querySelectorAll('.choice');
+    Array.prototype.forEach.call(botones, function(b){
+      b.addEventListener('click', function(){ responder(b.getAttribute('data-r') === 'tur', botones); });
+    });
+  }
+
+  function responder(eligioTurbulento, botones){
+    var q = PREGUNTAS[estado.i];
+    var acierto = (eligioTurbulento === q.turbulento);
+    if(acierto) estado.puntos++;
+    Array.prototype.forEach.call(botones, function(b){
+      b.disabled = true;
+      var esTur = b.getAttribute('data-r') === 'tur';
+      if(esTur === q.turbulento) b.classList.add('correct');
+      else if(esTur === eligioTurbulento) b.classList.add('wrong');
+    });
+
+    var Re = Math.round(q.Re);
+    var limite = q.tipo === 'tubo' ? (q.turbulento ? LIM_TUBO_TURB : LIM_TUBO_LAM) : LIM_PLACA;
+    var signo = q.turbulento ? '&gt;' : '&lt;';
+    var nombre = q.turbulento ? 'turbulento' : 'laminar';
+
+    tubo.target = tDesdeRe(q.Re, q.tipo);
+    lectura('<span>Re ≈ <strong>'+fmt(Re)+'</strong></span>','<strong>'+(q.turbulento?'Turbulento':'Laminar')+'</strong>');
+
+    var ultima = estado.i === PREGUNTAS.length - 1;
+    document.getElementById('fb').innerHTML =
+      '<div class="veredicto '+(acierto?'ok':'no')+'">' + (acierto ? '¡Bien! Es ' + nombre + '.' : 'Casi. Era ' + nombre + '.') + '</div>' +
+      '<div class="cuenta">' +
+        '<p><b>Paso 1.</b> Re = V × L / ν</p>' +
+        '<p class="eq"><b>Paso 2.</b> Re = ('+fmt(q.V,3)+' × '+fmt(q.L,3)+') / ('+fmt(q.nu,3)+' × 10<sup>−6</sup>)</p>' +
+        '<p class="eq"><b>Paso 3.</b> '+fmt(q.V,3)+' × '+fmt(q.L,3)+' = '+fmt(q.num,6)+'</p>' +
+        '<p class="eq"><b>Paso 4.</b> Re = '+fmt(q.num,6)+' / '+fmt(q.nuReal,9)+' ≈ <b>'+fmt(Re)+'</b></p>' +
+        '<p class="eq"><b>Paso 5.</b> '+fmt(Re)+' '+signo+' '+fmt(limite)+' → <b>'+nombre+'</b></p>' +
+      '</div>' +
+      '<button class="btn" id="sig">'+(ultima ? 'Ver mi resultado' : 'Siguiente situación')+'</button>';
+    var sig = document.getElementById('sig');
+    sig.focus({preventScroll:false});
+    sig.addEventListener('click', function(){
+      if(ultima){ pantallaFinal(); } else { estado.i++; pantallaPregunta(); window.scrollTo(0,0); }
+    });
+  }
+
+  function pantallaFinal(){
+    var n = PREGUNTAS.length, p = estado.puntos;
+    var msj = p === n ? 'Perfecto. Ya leés el Reynolds como un pro.'
+            : p >= 6 ? 'Muy bien. Te falta pulir un poquito la regla de corte.'
+            : p >= 4 ? 'Vas bien. Repasá los límites de caños y placas y volvé a jugar.'
+            : 'Mirá de nuevo la fórmula Re = V × L / ν y probá otra vez.';
+    tubo.target = p/n;
+    lectura('<span>Resultado final</span>','<strong>'+p+' / '+n+'</strong>');
+    pant.innerHTML =
+      '<div class="card">' +
+        '<h2>Terminaste</h2>' +
+        '<div class="final-num">'+p+' / '+n+'</div>' +
+        '<p style="margin-top:10px">'+msj+'</p>' +
+        '<div class="stack">' +
+          '<button class="btn" id="otra">Jugar de nuevo</button>' +
+          '<button class="btn sec" id="inicio">Volver al inicio</button>' +
+        '</div>' +
+      '</div>';
+    document.getElementById('otra').addEventListener('click', function(){ estado.i=0; estado.puntos=0; pantallaPregunta(); window.scrollTo(0,0); });
+    document.getElementById('inicio').addEventListener('click', function(){ pantallaInicio(); window.scrollTo(0,0); });
+  }
+
+  pantallaInicio();
+})();
+</script>
+</body>
+</html>
